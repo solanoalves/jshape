@@ -82,7 +82,7 @@ public class TransformImage {
 //		BufferedImage result = new BufferedImage(800, 150, BufferedImage.TYPE_USHORT_GRAY);
 //		Graphics g = result.getGraphics();
 //		g.setColor(new Color(120, 120, 120));
-		int valid = 0, diameter = 100;
+		int valid = 0, diameter = 120;
 		for(int i=0; i<points.size(); i++) {
 //			g.drawOval(points.get(i).getX(), points.get(i).getY(), 1, 1);
 			for(int j=0; j<points.size(); j++) {

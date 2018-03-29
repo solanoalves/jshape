@@ -37,9 +37,10 @@ public class KnnTest {
 
 	@Test
 	public void comparaImages() {
-		String[] query = new String[]{""};
+		String[] query = new String[]{"cnh.png","fran.png","s1.png", "s2.png", "s3.png", "s4.png", "s5.png", "f1.png", "f2.png", "f3.png", "f4.png", "f5.png", "c1.png", "c2.png", "c3.png", "c4.png", "c5.png", "assinatura.jpg", "christian.png", "fran2.png", "ff1.png", "ff2.png", "ff3.png"};
+//		String[] query = new String[]{"f2.png","c1.png"};
 
-		System.out.println("Base\tQuery\t+\t-\tScore");
+		System.out.println("Base\tpixels\tQuery\tpixels\t+\t-\tScore");
 		for(String b : query) {
 			for(String q : query) {
 				if(!b.equals(q)) {
@@ -57,8 +58,8 @@ public class KnnTest {
 			base = TransformImage.binarizeImage(base);
 			query = TransformImage.binarizeImage(query);
 			
-			base = TransformImage.scale(base, (int)(Math.max(base.getWidth(), query.getWidth())*2.5), (int)(Math.max(base.getHeight(), base.getHeight())*2.5), base.getType());
-			query = TransformImage.scale(query, Math.max(base.getWidth(), query.getWidth()), Math.max(base.getHeight(), base.getHeight()), query.getType());
+			base = TransformImage.scale(base, (int)(Math.max(base.getWidth(), query.getWidth())*2.5), (int)(Math.max(base.getHeight(), query.getHeight())*2.5), base.getType());
+			query = TransformImage.scale(query, Math.max(base.getWidth(), query.getWidth()), Math.max(base.getHeight(), query.getHeight()), query.getType());
 			
 			BufferedImage imgBase = TransformImage.skeletonization(base);
 			BufferedImage imgQuery = TransformImage.skeletonization(query);
@@ -123,7 +124,7 @@ public class KnnTest {
 //					g.drawOval(pontos.get(i).getX(), pontos.get(i).getY(), 1, 1);
 //					g.drawOval(pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY(), 1, 1);
 //					System.out.println(i+" "+resultHungarian[i]+" "+cost[i][resultHungarian[i]]);
-					if(cost[i][resultHungarian[i]] < 0.15 && pontos.get(i).distance(pontosQ.get(j)) < 100) {
+					if(cost[i][resultHungarian[i]] < 0.15) {
 //						g.drawLine(pontos.get(i).getX(), pontos.get(i).getY(), pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY());
 						match += cost[i][j];
 					}else {
@@ -134,8 +135,8 @@ public class KnnTest {
 				}
 			}
 			DecimalFormat df = new DecimalFormat("0.00");
-			
-			System.out.println(b.replace("data/", "").substring(0,6)+"\t"+q.replace("data/", "").substring(0,6)+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format((match/(unmatch+match))*100));
+//			if((match/(unmatch+match))*100 > 3.0)
+				System.out.println(b.replace("data/", "").substring(0,6)+"\t"+(pontos.size())+"\t"+q.replace("data/", "").substring(0,6)+"\t"+(pontosQ.size())+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format((match/(unmatch+match))*100));
 			
 //			File o = new File("knn.png");
 //			ImageIO.write(result, "png", o);
