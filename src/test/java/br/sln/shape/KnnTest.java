@@ -15,10 +15,14 @@
  */
 package br.sln.shape;
 
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.text.DecimalFormat;
+import java.util.Date;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -34,11 +38,10 @@ import br.sln.jshape.TransformImage;
  * Unit tests for {@link Image}.
  */
 public class KnnTest {
-
 	@Test
 	public void comparaImages() {
-		String[] query = new String[]{"cnh.png","fran.png","s1.png", "s2.png", "s3.png", "s4.png", "s5.png", "f1.png", "f2.png", "f3.png", "f4.png", "f5.png", "c1.png", "c2.png", "c3.png", "c4.png", "c5.png", "assinatura.jpg", "christian.png", "fran2.png", "ff1.png", "ff2.png", "ff3.png"};
-//		String[] query = new String[]{"f2.png","c1.png"};
+//		String[] query = new String[]{"s0.png","c0.png","s1.png", "s2.png", "s3.png", "s4.png", "s5.png", "f1.png", "f2.png", "f3.png", "f4.png", "f5.png", "cf1.png", "c1.png", "c2.png", "c3.png", "c4.png", "c5.png", "s6.jpg", "f6.png", "ff1.png", "ff2.png", "ff3.png"};
+		String[] query = new String[]{"f1.png","c3.png"};
 
 		System.out.println("Base\tpixels\tQuery\tpixels\t+\t-\tScore");
 		for(String b : query) {
@@ -67,27 +70,9 @@ public class KnnTest {
 			List<KnnPoint> pontos = TransformImage.knn(imgBase);
 			List<KnnPoint> pontosQ = TransformImage.knn(imgQuery);
 			
-//			System.out.println(pontos.get(0).getX()+","+pontos.get(0).getY()+" vs "+pontosQ.get(32).getX()+","+pontosQ.get(32).getY());
-			
 			double[][]  shapeContextA = new double[Math.max(pontos.size(), pontos.size())][5*12], 
 						shapeContextB = new double[Math.max(pontosQ.size(), pontosQ.size())][5*12];
 			TransformImage.shapeDescriptor(pontos, shapeContextA, pontosQ, shapeContextB);
-			
-			
-//			for (int r = 4; r >= 0; r--) {
-//				for (int t = 0; t < 12; t++) {
-//					System.out.print((int)shapeContextA[0][12*r+t]+"\t");
-//				}
-//				System.out.println("");
-//			}
-//			System.out.println("");
-//			for (int r = 4; r >= 0; r--) {
-//				for (int t = 0; t < 12; t++) {
-//					System.out.print((int)shapeContextB[32][12*r+t]+"\t");
-//				}
-//				System.out.println("");
-//			}
-//			System.out.println("------------");
 			
 			double[][] cost = TransformImage.histCount(shapeContextA, shapeContextB);
 			
@@ -100,46 +85,47 @@ public class KnnTest {
 			Hungarian h = new Hungarian(cost);
 			int[] resultHungarian = h.execute();
 			
-//			BufferedImage result = new BufferedImage(Math.max(imgBase.getWidth(), imgQuery.getWidth()), imgBase.getHeight()+imgQuery.getHeight(), imgBase.toBufferedImage().getType());
-//			Graphics g = result.getGraphics();
-//			Graphics2D drawer = result.createGraphics() ;
-//			drawer.setBackground(Color.WHITE);
-//			drawer.clearRect(0,0,result.getWidth(),result.getHeight());
-//			g.setColor(new Color(100,100,100));
-//			for (int i = 0; i < pontos.size(); i++) {
-//				g.drawOval(pontos.get(i).getX(), pontos.get(i).getY(), 1, 1);
-//			}
-//			for (int i = 0; i < pontosQ.size(); i++) {
-//				g.drawOval(pontosQ.get(i).getX(), base.getHeight()+pontosQ.get(i).getY(), 1, 1);
-//			}
-//			g.drawImage(base, 0, 0, null);
-//			g.drawImage(query, 0, base.getHeight(), null);
+			BufferedImage result = new BufferedImage(Math.max(imgBase.getWidth(), imgQuery.getWidth()), imgBase.getHeight()+imgQuery.getHeight(), imgBase.getType());
+			Graphics g = result.getGraphics();
+			Graphics2D drawer = result.createGraphics() ;
+			drawer.setBackground(Color.WHITE);
+			drawer.clearRect(0,0,result.getWidth(),result.getHeight());
+			g.setColor(new Color(100,100,100));
+			for (int i = 0; i < pontos.size(); i++) {
+				g.drawOval(pontos.get(i).getX(), pontos.get(i).getY(), 1, 1);
+			}
+			for (int i = 0; i < pontosQ.size(); i++) {
+				g.drawOval(pontosQ.get(i).getX(), base.getHeight()+pontosQ.get(i).getY(), 1, 1);
+			}
+			g.setColor(new Color(120,120,120));
 			
-//			g.setColor(new Color(120,120,120));
 			int j;
 			double match=0, unmatch=0;
+			double min = 10000; int mini=0,minj=0;
 			for (int i = 0; i < resultHungarian.length; i++) {
 				j = resultHungarian[i];
 				if(i < pontos.size() && j < pontosQ.size()) {
-//					g.drawOval(pontos.get(i).getX(), pontos.get(i).getY(), 1, 1);
-//					g.drawOval(pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY(), 1, 1);
-//					System.out.println(i+" "+resultHungarian[i]+" "+cost[i][resultHungarian[i]]);
-					if(cost[i][resultHungarian[i]] < 0.15) {
-//						g.drawLine(pontos.get(i).getX(), pontos.get(i).getY(), pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY());
+					if(cost[i][j] < 0.25) {
+						if(min > cost[i][j]) {
+							min = cost[i][j];
+							mini = i;
+							minj = j;
+						}
+						g.drawLine(pontos.get(i).getX(), pontos.get(i).getY(), pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY());
 						match += cost[i][j];
 					}else {
 						unmatch += cost[i][j]; 
 					}
-//					g.drawString("("+pontos.get(i).getX()+","+pontos.get(i).getY()+")", pontos.get(i).getX(), pontos.get(i).getY());
-//					g.drawString("("+pontosQ.get(j).getX()+","+pontosQ.get(j).getY()+")", pontosQ.get(j).getX(), imgBase.getHeight()+pontosQ.get(j).getY());
 				}
 			}
+			System.out.println("Ponto minimo: ("+pontos.get(mini).getX()+","+pontos.get(mini).getY()+") -> ("+pontosQ.get(minj).getX()+","+pontosQ.get(minj).getY()+")");
 			DecimalFormat df = new DecimalFormat("0.00");
 //			if((match/(unmatch+match))*100 > 3.0)
+//			if(!b.replace("data/", "").substring(0,1).equals(q.replace("data/", "").substring(0,1)))
 				System.out.println(b.replace("data/", "").substring(0,6)+"\t"+(pontos.size())+"\t"+q.replace("data/", "").substring(0,6)+"\t"+(pontosQ.size())+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format((match/(unmatch+match))*100));
 			
-//			File o = new File("knn.png");
-//			ImageIO.write(result, "png", o);
+			File o = new File("knn_"+(new Date().getTime())+".png");
+			ImageIO.write(result, "png", o);
 			
 		} catch (Exception e) {
 			e.printStackTrace();

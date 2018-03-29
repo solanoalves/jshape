@@ -1,13 +1,18 @@
 package br.sln.jshape;
 
 import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
+
+import javax.imageio.ImageIO;
 
 public class TransformImage {
 	
@@ -35,7 +40,7 @@ public class TransformImage {
 		List<KnnPoint> keypoints = new ArrayList<KnnPoint>();
 		Queue<KnnPoint> toRemove = new LinkedList<KnnPoint>();
 		if(image != null) {
-			double k = 1.5;
+			double k = 2;
 			int gray = 0;
 			PriorityQueue<KnnPoint> queue = new PriorityQueue<KnnPoint>(10, new KnnPointComparator());
 			for(int r=0; r<image.getHeight(); r++) {
@@ -79,12 +84,13 @@ public class TransformImage {
 			rBinsEdge[i] = Math.pow(10, Math.log10(rInner)+nDist*i);
 		}
 		
-//		BufferedImage result = new BufferedImage(800, 150, BufferedImage.TYPE_USHORT_GRAY);
-//		Graphics g = result.getGraphics();
-//		g.setColor(new Color(120, 120, 120));
-		int valid = 0, diameter = 120;
+		BufferedImage result = new BufferedImage(800, 350, BufferedImage.TYPE_USHORT_GRAY);
+		Graphics g = result.getGraphics();
+		g.setColor(new Color(120, 120, 120));
+		int valid = 0, diameter = 100;
 		for(int i=0; i<points.size(); i++) {
-//			g.drawOval(points.get(i).getX(), points.get(i).getY(), 1, 1);
+			if((points.get(i).getX() == 195 && points.get(i).getY()==207) || (points.get(i).getX()==164 && points.get(i).getY()==244))
+				g.drawOval(points.get(i).getX(), points.get(i).getY(), 1, 1);
 			for(int j=0; j<points.size(); j++) {
 				if( i == j) continue;
 				
@@ -105,29 +111,29 @@ public class TransformImage {
 				//Euclidean
 				radius[i][j] = points.get(i).distance(points.get(j));
 				
-//				if((points.get(i).getX() == 46 && points.get(i).getY()==46) || (points.get(i).getX()==54 && points.get(i).getY()==38)) {
+				g.drawOval(points.get(j).getX(), points.get(j).getY(), 1, 1);
 //					g.drawLine(points.get(i).getX(), points.get(i).getY(), points.get(j).getX(), points.get(j).getY());
-//				}
 				
 				mean += radius[i][j];
 				valid++;
 			}
 			
-//			if((points.get(i).getX() == 46 && points.get(i).getY()==46) || (points.get(i).getX()==54 && points.get(i).getY()==38)) {
-//				g.setColor(new Color(255, 255, 255));
-//				g.drawOval(points.get(i).getX()-diameter/2, points.get(i).getY()-diameter/2, diameter, diameter);
-//				for(double t=0.0; t<Math.PI*2+0.5; t+=Math.PI/6) {
-//					g.drawLine(points.get(i).getX(), points.get(i).getY(), points.get(i).getX()+(int)((diameter/2)*Math.cos(t)), points.get(i).getY()+(int)((diameter/2)*Math.sin(t)));
-//				}
-//				g.setColor(new Color(120, 120, 120));
+			if((points.get(i).getX() == 195 && points.get(i).getY()==207) || (points.get(i).getX()==164 && points.get(i).getY()==244)) {
+				g.setColor(new Color(255, 255, 255));
+				g.drawOval(points.get(i).getX()-diameter/2, points.get(i).getY()-diameter/2, diameter, diameter);
+				for(double t=0.0; t<Math.PI*2+0.5; t+=Math.PI/6) {
+					g.drawLine(points.get(i).getX(), points.get(i).getY(), points.get(i).getX()+(int)((diameter/2)*Math.cos(t)), points.get(i).getY()+(int)((diameter/2)*Math.sin(t)));
+				}
+				g.setColor(new Color(120, 120, 120));
+			}
 //			}
 		}
 		
-//		File o = new File("ponto"+points.get(0).getX()+"-"+points.get(2).getY()+".png");
-//		try {
-//			ImageIO.write(result, "png", o);
-//		} catch (IOException e) {
-//		}
+		File o = new File("ponto"+points.get(0).getX()+"-"+points.get(0).getY()+".png");
+		try {
+			ImageIO.write(result, "png", o);
+		} catch (IOException e) {
+		}
 		
 		mean /= valid;
 		int k;
@@ -241,7 +247,8 @@ public class TransformImage {
 	
 	public static BufferedImage skeletonization(BufferedImage image) {
 		BufferedImage ret = image;
-		while(ret != null) {
+		int iterations = 8;
+		while(iterations-- > 0) {
 			ret = skeletonization(ret, true);
 			if(ret != null) {
 				image = ret;
@@ -280,7 +287,7 @@ public class TransformImage {
 					SP1 = (window[0][2]>window[0][1]?1:0)+(window[1][2]>window[0][2]?1:0)+(window[2][2]>window[1][2]?1:0)
 						+ (window[2][1]>window[2][2]?1:0)+(window[2][0]>window[2][1]?1:0)+(window[1][0]>window[2][0]?1:0)
 						+ (window[0][0]>window[1][0]?1:0)+(window[0][1]>window[0][0]?1:0);
-					eliminate &= (NP1 >= 4 && NP1 <= 6); //a
+					eliminate &= (NP1 >= 2 && NP1 <= 6); //a
 					eliminate &= (SP1 == 1); //b
 					if(step1) {
 						eliminate &= (window[0][1] * window[1][2] * window[2][1] == 0); //c
