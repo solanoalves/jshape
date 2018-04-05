@@ -15,14 +15,12 @@
  */
 package br.sln.shape;
 
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -31,7 +29,6 @@ import org.junit.Test;
 
 import br.sln.jshape.Hungarian;
 import br.sln.jshape.KnnPoint;
-import br.sln.jshape.Outlier;
 import br.sln.jshape.TransformImage;
 
 /**
@@ -40,14 +37,19 @@ import br.sln.jshape.TransformImage;
 public class KnnTest {
 	@Test
 	public void comparaImages() {
-//		String[] query = new String[]{"s0.png","c0.png","s1.png", "s2.png", "s3.png", "s4.png", "s5.png", "f1.png", "f2.png", "f3.png", "f4.png", "f5.png", "cf1.png", "c1.png", "c2.png", "c3.png", "c4.png", "c5.png", "s6.jpg", "f6.png", "ff1.png", "ff2.png", "ff3.png"};
-		String[] query = new String[]{"f1.png","c3.png"};
+		String[] base = new String[]{"00.png", "01.png", "02.png", "03.png", "04.jpg", "05.png", "06.jpg", "07.jpg", "08.jpg", "09.jpg", "10.jpg", "11.jpg", "12.jpg"};
+//		String[] base = new String[]{"00.png"};
+//		String[] query = new String[]{"01-1.png"};
+//		String[] query = new String[]{"c1.png", "c2.png", "c3.png", "d1.png"};
 
-		System.out.println("Base\tpixels\tQuery\tpixels\t+\t-\tScore");
-		for(String b : query) {
-			for(String q : query) {
-				if(!b.equals(q)) {
-					comparar("data/"+b,"data/"+q);
+		System.out.println("Base\tQuery\t+\t-\tScore");
+		String[] spl = null;
+		for(String b : base) {
+//			comparar("data/base/"+b,"data/"+query[0]);
+			for(String q : base) {
+				for(int i=0; i<2; i++) {
+					spl = q.split("\\.");
+					comparar(b,spl[0]+"-"+i+".png");
 				}
 			}
 		}
@@ -55,77 +57,85 @@ public class KnnTest {
 
 	public void comparar(String b, String q) {
 		try {
-			BufferedImage base = ImageIO.read(new File(b));
-			BufferedImage query = ImageIO.read(new File(q));
+			BufferedImage base = ImageIO.read(new File("data/base/"+b));
+			BufferedImage query = ImageIO.read(new File("data/"+q));
 			
 			base = TransformImage.binarizeImage(base);
 			query = TransformImage.binarizeImage(query);
-			
-			base = TransformImage.scale(base, (int)(Math.max(base.getWidth(), query.getWidth())*2.5), (int)(Math.max(base.getHeight(), query.getHeight())*2.5), base.getType());
+
+			base = TransformImage.scale(base, (int)(Math.max(base.getWidth(), query.getWidth())*3), (int)(Math.max(base.getHeight(), query.getHeight())*3), base.getType());
 			query = TransformImage.scale(query, Math.max(base.getWidth(), query.getWidth()), Math.max(base.getHeight(), query.getHeight()), query.getType());
 			
-			BufferedImage imgBase = TransformImage.skeletonization(base);
-			BufferedImage imgQuery = TransformImage.skeletonization(query);
+			base = TransformImage.dilate(base);
+			base = TransformImage.dilate(base);
 			
-			List<KnnPoint> pontos = TransformImage.knn(imgBase);
-			List<KnnPoint> pontosQ = TransformImage.knn(imgQuery);
+			query = TransformImage.erode(query);
+			query = TransformImage.erode(query);
 			
-			double[][]  shapeContextA = new double[Math.max(pontos.size(), pontos.size())][5*12], 
-						shapeContextB = new double[Math.max(pontosQ.size(), pontosQ.size())][5*12];
-			TransformImage.shapeDescriptor(pontos, shapeContextA, pontosQ, shapeContextB);
+			BufferedImage imgBase = TransformImage.skeletonization(base, 2);
+			BufferedImage imgQuery = TransformImage.skeletonization(query, 2);
+//			
+//			File fbase = new File("imgBase.png");
+//			ImageIO.write(base, "png", fbase);
+//			File fquery = new File("imgQuery.png");
+//			ImageIO.write(query, "png", fquery);
 			
-			double[][] cost = TransformImage.histCount(shapeContextA, shapeContextB);
+			List<KnnPoint> _pontos = TransformImage.knn(imgBase, 3);
+			List<KnnPoint> _pontosQ = TransformImage.knn(imgQuery, 3);
 			
-			if( pontos.size() > pontosQ.size() ) {
-				Outlier.setOutlierCost(cost, pontos);
-			}else if(pontos.size() < pontosQ.size()) {
-				Outlier.setOutlierCost(cost, pontosQ);
+			List<Integer> indices = new ArrayList<>();
+			for(int i=0; i<Math.min(_pontos.size(), _pontosQ.size()); i++) {
+				indices.add(i);
 			}
+			Collections.shuffle(indices);
+			List<KnnPoint> pontos = new ArrayList<>();
+			for(int i=0;i<indices.size();i++)
+				pontos.add(_pontos.get(i));
+			List<KnnPoint> pontosQ = new ArrayList<>();
+			for(int i=0;i<indices.size();i++)
+				pontosQ.add(_pontosQ.get(i));
+			
+			
+			double[][]  shapeContextA = new double[Math.max(pontos.size(), pontosQ.size())][5*12], 
+						shapeContextB = new double[Math.max(pontos.size(), pontosQ.size())][5*12];
+			TransformImage.shapeDescriptor(pontos, shapeContextA, pontosQ, shapeContextB);
+
+			double[][] cost = TransformImage.histCount(pontos, shapeContextA, pontosQ, shapeContextB);
 			
 			Hungarian h = new Hungarian(cost);
 			int[] resultHungarian = h.execute();
 			
-			BufferedImage result = new BufferedImage(Math.max(imgBase.getWidth(), imgQuery.getWidth()), imgBase.getHeight()+imgQuery.getHeight(), imgBase.getType());
-			Graphics g = result.getGraphics();
-			Graphics2D drawer = result.createGraphics() ;
-			drawer.setBackground(Color.WHITE);
-			drawer.clearRect(0,0,result.getWidth(),result.getHeight());
-			g.setColor(new Color(100,100,100));
-			for (int i = 0; i < pontos.size(); i++) {
-				g.drawOval(pontos.get(i).getX(), pontos.get(i).getY(), 1, 1);
-			}
-			for (int i = 0; i < pontosQ.size(); i++) {
-				g.drawOval(pontosQ.get(i).getX(), base.getHeight()+pontosQ.get(i).getY(), 1, 1);
-			}
-			g.setColor(new Color(120,120,120));
+//			BufferedImage result = new BufferedImage(Math.max(imgBase.getWidth(), imgQuery.getWidth()), imgBase.getHeight()+imgQuery.getHeight(), imgBase.getType());
+//			Graphics g = result.getGraphics();
+//			Graphics2D drawer = result.createGraphics() ;
+//			drawer.setBackground(Color.WHITE);
+//			drawer.clearRect(0,0,result.getWidth(),result.getHeight());
+//			g.setColor(new Color(100,100,100));
+//			for (int i = 0; i < pontos.size(); i++) {
+//				g.drawOval(pontos.get(i).getX(), pontos.get(i).getY(), 1, 1);
+//			}
+//			for (int i = 0; i < pontosQ.size(); i++) {
+//				g.drawOval(pontosQ.get(i).getX(), base.getHeight()+pontosQ.get(i).getY(), 1, 1);
+//			}
+//			g.setColor(new Color(120,120,120));
 			
 			int j;
-			double match=0, unmatch=0;
-			double min = 10000; int mini=0,minj=0;
+			double match=0, unmatch=2.2204e-016;
 			for (int i = 0; i < resultHungarian.length; i++) {
 				j = resultHungarian[i];
-				if(i < pontos.size() && j < pontosQ.size()) {
-					if(cost[i][j] < 0.25) {
-						if(min > cost[i][j]) {
-							min = cost[i][j];
-							mini = i;
-							minj = j;
-						}
-						g.drawLine(pontos.get(i).getX(), pontos.get(i).getY(), pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY());
-						match += cost[i][j];
-					}else {
-						unmatch += cost[i][j]; 
-					}
+				if(cost[i][j] < 10e5 && pontos.get(i).distance(pontosQ.get(j)) < 60) {
+					match+=1;
+//					g.drawLine(pontos.get(i).getX(), pontos.get(i).getY(), pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY());
+				}else {
+					unmatch += 1; 
 				}
 			}
-			System.out.println("Ponto minimo: ("+pontos.get(mini).getX()+","+pontos.get(mini).getY()+") -> ("+pontosQ.get(minj).getX()+","+pontosQ.get(minj).getY()+")");
 			DecimalFormat df = new DecimalFormat("0.00");
-//			if((match/(unmatch+match))*100 > 3.0)
-//			if(!b.replace("data/", "").substring(0,1).equals(q.replace("data/", "").substring(0,1)))
-				System.out.println(b.replace("data/", "").substring(0,6)+"\t"+(pontos.size())+"\t"+q.replace("data/", "").substring(0,6)+"\t"+(pontosQ.size())+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format((match/(unmatch+match))*100));
+			double scoreFactor = (match*unmatch)/(match+unmatch);
+			System.out.println(b.replace("data/", "").substring(0,6)+"\t"+q.replace("data/", "").substring(0,6)+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format(scoreFactor*(match/(unmatch+match))*100));
 			
-			File o = new File("knn_"+(new Date().getTime())+".png");
-			ImageIO.write(result, "png", o);
+//			File ox = new File("knn_"+(b.replace("data/base/", "")+"_"+q.replace("data/", ""))+".png");
+//			ImageIO.write(result, "png", ox);
 			
 		} catch (Exception e) {
 			e.printStackTrace();

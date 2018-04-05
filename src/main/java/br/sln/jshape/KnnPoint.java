@@ -4,6 +4,7 @@ public class KnnPoint {
 	private int x;
 	private int y;
 	private boolean outlier;
+	private boolean compared;
 	public KnnPoint(int x, int y) {
 		this.x = x;
 		this.y = y;
@@ -25,6 +26,13 @@ public class KnnPoint {
 	}
 	public void setOutlier(boolean outlier) {
 		this.outlier = outlier;
+	}
+	public boolean isCompared() {
+		return compared;
+	}
+	public KnnPoint setCompared(boolean compared) {
+		this.compared = compared;
+		return this;
 	}
 	public double distance(KnnPoint point) {
 		if(point != null) {
