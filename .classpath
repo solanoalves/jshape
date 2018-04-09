@@ -22,6 +22,5 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="jitk-tps-3.0.0.jar" sourcepath="/jitk-tps-jitk-tps-3.0.0"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

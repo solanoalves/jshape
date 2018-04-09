@@ -17,24 +17,6 @@
 			<url>/LICENSE.txt</url>
 		</license>
 	</licenses>
-	<scm>
-		<connection>scm:git:git@github.com:smurn/jsift.git</connection>
-		<developerConnection>scm:git:git@github.com:smurn/jsift.git</developerConnection>
-		<url>scm:git:https://github.com/smurn/jsift/tree/master</url>
-	</scm>
-	<issueManagement>
-		<system>Github</system>
-		<url>https://github.com/smurn/jsift/issues</url>
-	</issueManagement>
-	<ciManagement>
-		<system>Hudson</system>
-		<url>http://greebo.smurn.org:8080/hudson/job/jsift</url>
-	</ciManagement>
-	<developers>
-		<developer>
-			<name>Stefan C. Mueller</name>
-		</developer>
-	</developers>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -156,14 +138,9 @@
 	</profiles>
 	<dependencies>
 		<dependency>
-			<groupId>com.googlecode.efficient-java-matrix-library</groupId>
-			<artifactId>ejml</artifactId>
-			<version>0.24</version>
-		</dependency>
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
+			<groupId>gov.nih.imagej</groupId>
+			<artifactId>imagej</artifactId>
+			<version>1.47</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>

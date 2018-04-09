@@ -9,22 +9,24 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import jitk.spline.ThinPlateR2LogRSplineKernelTransform;
-
 public class TransformImage {
 
 	public static BufferedImage binarizeImage(BufferedImage img) {
 		BufferedImage ret = null;
 		if (img != null) {
-			int gray;
-			ret = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+			int gray, r,g,b,rgb;
+			ret = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
 			for (int row = 0; row < img.getHeight(); row++) {
 				for (int col = 0; col < img.getWidth(); col++) {
-					gray = img.getRGB(col, row) & 0xFF;
-					if (gray < 130) {
-						ret.setRGB(col, row, Color.WHITE.getRGB());
-					} else {
+					rgb = img.getRGB(col, row);
+					r = (rgb >> 16) & 0xFF;
+			        g = (rgb >> 8) & 0xFF;
+			        b = (rgb & 0xFF);
+			        gray = (r + g + b) / 3;
+					if (gray < 150) {
 						ret.setRGB(col, row, Color.BLACK.getRGB());
+					} else {
+						ret.setRGB(col, row, Color.WHITE.getRGB());
 					}
 				}
 			}
@@ -33,57 +35,54 @@ public class TransformImage {
 		return ret;
 	}
 	
-	public static BufferedImage dilate(BufferedImage image) {
+	public static void dilate(BufferedImage image) {
 		if(image != null) {
-			int gray;
 			for(int r=0; r<image.getHeight(); r++) {
 				for(int c=0; c<image.getWidth(); c++) {
-					gray = image.getRGB(c, r) & 0xFF;
-					if(gray == 255) {
-						if(r-1>0 && (image.getRGB(c, r-1) & 0xFF) == 0) image.setRGB(c, r-1, 2);
-						if(c-1>0 && (image.getRGB(c-1, r) & 0xFF) == 0) image.setRGB(c-1, r, 2);
-						if(r+1<image.getHeight() && (image.getRGB(c, r+1) & 0xFF) == 0) image.setRGB(c, r+1, 2);
-						if(c+1<image.getWidth() && (image.getRGB(c+1, r) & 0xFF) == 0) image.setRGB(c+1, r, 2);
+					if( image.getRGB(c, r) == Color.BLACK.getRGB() ) {
+						if(c > 0 && image.getRGB(c-1, r) == Color.WHITE.getRGB()) image.getRaster().setSample(c-1, r, 0, 2);
+						if(r > 0 && image.getRGB(c, r-1) == Color.WHITE.getRGB()) image.getRaster().setSample(c, r-1, 0, 2);
+						if(c+1 < image.getWidth() && image.getRGB(c+1, r) == Color.WHITE.getRGB()) image.getRaster().setSample(c+1, r, 0, 2);
+						if(r+1 > image.getHeight() && image.getRGB(c, r+1) == Color.WHITE.getRGB()) image.getRaster().setSample(c, r+1, 0, 2);
 					}
 				}
 			}
 			for(int r=0; r<image.getHeight(); r++) {
 				for(int c=0; c<image.getWidth(); c++) {
-					if((image.getRGB(c, r) & 0xFF) == 2) {
-						image.setRGB(c, r, Color.WHITE.getRGB());
-					}
-				}
-			}
-		}
-		return image;
-	}
-	
-	public static BufferedImage erode(BufferedImage image) {
-		if(image != null) {
-			boolean erode;
-			for(int r=0; r<image.getHeight(); r++) {
-				for(int c=0; c<image.getWidth(); c++) {
-					if((image.getRGB(c, r) & 0xFF) == 255) {
-						erode = false;
-						for(int i=-1; i<=1; i++) {
-							for(int j=-1; j<=1; j++) {
-								erode |= r+i > 0 && c+j > 0 && r+i < image.getHeight() && c+j < image.getWidth() && (image.getRGB(c+j, r+i) & 0xFF) == 0;
-							}
-						}
-						if(erode)
-							image.setRGB(c, r, 2);
-					}
-				}
-			}
-			for(int r=0; r<image.getHeight(); r++) {
-				for(int c=0; c<image.getWidth(); c++) {
-					if(image.getRGB(c, r) == 2) {
+					if(image.getRaster().getSample(c, r, 0) == 2) {
 						image.setRGB(c, r, Color.BLACK.getRGB());
 					}
 				}
 			}
 		}
-		return image;
+	}
+	
+	public static void erode(BufferedImage image) {
+		if(image != null) {
+			boolean erode;
+			for(int r=0; r<image.getHeight(); r++) {
+				for(int c=0; c<image.getWidth(); c++) {
+					if(image.getRGB(c, r) == Color.WHITE.getRGB()) {
+						erode = false;
+						for(int i=-1; i<=1; i++) {
+							for(int j=-1; j<=1; j++) {
+								erode |= r+i > 0 && c+j > 0 && r+i < image.getHeight() && c+j < image.getWidth() && image.getRGB(c+j, r+i)  == Color.BLACK.getRGB();
+							}
+						}
+						if(erode) {
+							image.getRaster().setSample(c, r, 0, 2);
+						}
+					}
+				}
+			}
+			for(int r=0; r<image.getHeight(); r++) {
+				for(int c=0; c<image.getWidth(); c++) {
+					if(image.getRaster().getSample(c, r, 0) == 2) {
+						image.setRGB(c, r, Color.BLACK.getRGB());
+					}
+				}
+			}
+		}
 	}
 	
 	public static List<KnnPoint> knn(List<KnnPoint> points, double k) {
@@ -124,7 +123,7 @@ public class TransformImage {
 			for (int r = 0; r < image.getHeight(); r++) {
 				for (int c = 0; c < image.getWidth(); c++) {
 					gray = image.getRGB(c, r) & 0xFF;
-					if (gray == 255) {
+					if (gray == 0) {
 						queue.add(new KnnPoint(c, r));
 					}
 				}
@@ -309,48 +308,6 @@ public class TransformImage {
 		return cost;
 	}
 	
-	public static double costQ(ThinPlateR2LogRSplineKernelTransform tps, int idxPoint, List<KnnPoint> pointsA, List<KnnPoint> pointsB, double[][] cost) throws Exception {
-		double[] Tq;
-		double costMin = 10e10;
-		double[] qv = null;
-		for(KnnPoint q : pointsB) {
-			qv = new double[] {q.getX(), q.getY()};
-			Tq = tps.apply(qv);
-			if(Double.isNaN(Tq[0]) || Double.isNaN(Tq[1]))
-				continue;
-			int idx = -1;
-			for(KnnPoint s : pointsA) {
-				idx++;
-				if(s.getX() == (int)Tq[0] && s.getY() == (int)Tq[1]) {					
-					break;
-				}
-			}
-			if(costMin > cost[idxPoint][idx]) {
-				costMin = cost[idxPoint][idx];
-			}
-		}
-		return costMin;
-	}
-	
-	public static double costP(ThinPlateR2LogRSplineKernelTransform tps, KnnPoint point, List<KnnPoint> pointsA, List<KnnPoint> pointsB, double[][] cost) throws Exception {
-		double[] Tq;
-		double costMin = 10e10;
-		Tq = tps.apply(new double[] {point.getX(), point.getY()});
-		int idx = -1;
-		for(KnnPoint s : pointsA) {
-			idx++;
-			if(s.getX() == (int)Tq[0] && s.getY() == (int)Tq[1]) {					
-				break;
-			}
-		}
-		for (int i = 0; i < pointsA.size(); i++) {
-			if(costMin > cost[i][idx]) {
-				costMin = cost[i][idx];
-			}
-		}
-		return costMin;
-	}
-	
 	public static BufferedImage scale(BufferedImage src, int w, int h, int imageType)
 	{
 	    BufferedImage img = 
@@ -373,7 +330,7 @@ public class TransformImage {
 	
 	public static BufferedImage skeletonization(BufferedImage image, int iterations) {
 		BufferedImage ret = image;
-		while(iterations-- > 0) {
+		while(iterations-- > 0 && ret != null) {
 			ret = skeletonization(ret, true);
 			if(ret != null) {
 				image = ret;
@@ -395,6 +352,7 @@ public class TransformImage {
 			boolean eliminate = true;
 			for(int r=0; r<image.getHeight(); r++) {
 				for(int c=0; c<image.getWidth(); c++) {
+					ret.setRGB(c, r, Color.BLACK.getRGB());
 					eliminate = true;
 					sum = 0;
 					gray = image.getRGB(c, r) & 0xFF;
@@ -440,7 +398,7 @@ public class TransformImage {
 			for (int row = 0; row < image.getHeight(); row++) {
                 for (int col = 0; col < image.getWidth(); col++) {
                 	gray = image.getRGB(col, row) & 0XFF;
-                    if (gray == 255) {
+                    if (gray == 0) {
                     	if(col < minCol) minCol = col;
                     	if(col > maxCol) maxCol = col;
                     	if(row < minRow) minRow = row;
@@ -448,11 +406,11 @@ public class TransformImage {
                     }
                 }
             }
-			int offset = 10;
+			int offset = 0;
 			BufferedImage img = new BufferedImage(maxCol-minCol+offset, maxRow-minRow+offset, image.getType());
 			for(int c = 0; c < img.getWidth(); c++) {
 				for(int r = 0; r < img.getHeight(); r++) {
-					img.setRGB(c, r, Color.BLACK.getRGB());
+					img.setRGB(c, r, Color.WHITE.getRGB());
 				}
 			}
 			for(int c = 0; c < img.getWidth()-offset; c++) {

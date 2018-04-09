@@ -19,8 +19,6 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -30,6 +28,7 @@ import org.junit.Test;
 import br.sln.jshape.Hungarian;
 import br.sln.jshape.KnnPoint;
 import br.sln.jshape.TransformImage;
+import ij.process.ByteProcessor;
 
 /**
  * Unit tests for {@link Image}.
@@ -37,15 +36,15 @@ import br.sln.jshape.TransformImage;
 public class KnnTest {
 	@Test
 	public void comparaImages() {
-		String[] base = new String[]{"00.png", "01.png", "02.png", "03.png", "04.jpg", "05.png", "06.jpg", "07.jpg", "08.jpg", "09.jpg", "10.jpg", "11.jpg", "12.jpg"};
-//		String[] base = new String[]{"00.png"};
-//		String[] query = new String[]{"01-1.png"};
+		String[] base = new String[]{"00.png", "01.png", "02.png", "03.png", "04.jpg", "05.png", "06.jpg", "07.jpg", "08.jpg", "09.jpg", "10.jpg", "11.jpg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg"};
+//		String[] base = new String[]{"02.png"};
+//		String[] query = new String[]{"20-1.png"};
 //		String[] query = new String[]{"c1.png", "c2.png", "c3.png", "d1.png"};
 
 		System.out.println("Base\tQuery\t+\t-\tScore");
 		String[] spl = null;
 		for(String b : base) {
-//			comparar("data/base/"+b,"data/"+query[0]);
+//			comparar(b,query[0]);
 			for(String q : base) {
 				for(int i=0; i<2; i++) {
 					spl = q.split("\\.");
@@ -59,42 +58,38 @@ public class KnnTest {
 		try {
 			BufferedImage base = ImageIO.read(new File("data/base/"+b));
 			BufferedImage query = ImageIO.read(new File("data/"+q));
-			
+
 			base = TransformImage.binarizeImage(base);
 			query = TransformImage.binarizeImage(query);
+			
+			base = TransformImage.scale(base, Math.max(base.getWidth(), query.getWidth())*2, Math.max(base.getHeight(), query.getHeight())*2, base.getType());
+			query = TransformImage.scale(query, base.getWidth(), base.getHeight(), query.getType());
 
-			base = TransformImage.scale(base, (int)(Math.max(base.getWidth(), query.getWidth())*3), (int)(Math.max(base.getHeight(), query.getHeight())*3), base.getType());
-			query = TransformImage.scale(query, Math.max(base.getWidth(), query.getWidth()), Math.max(base.getHeight(), query.getHeight()), query.getType());
+			new ByteProcessor(base).skeletonize();
+			new ByteProcessor(query).skeletonize();
 			
-			base = TransformImage.dilate(base);
-			base = TransformImage.dilate(base);
+			List<KnnPoint> pontos = TransformImage.knn(base, 2);
+			List<KnnPoint> pontosQ = TransformImage.knn(query, 2);
 			
-			query = TransformImage.erode(query);
-			query = TransformImage.erode(query);
+//			BufferedImage imgBase = base;
+//			BufferedImage imgQuery = query;
 			
-			BufferedImage imgBase = TransformImage.skeletonization(base, 2);
-			BufferedImage imgQuery = TransformImage.skeletonization(query, 2);
-//			
 //			File fbase = new File("imgBase.png");
 //			ImageIO.write(base, "png", fbase);
 //			File fquery = new File("imgQuery.png");
 //			ImageIO.write(query, "png", fquery);
 			
-			List<KnnPoint> _pontos = TransformImage.knn(imgBase, 3);
-			List<KnnPoint> _pontosQ = TransformImage.knn(imgQuery, 3);
-			
-			List<Integer> indices = new ArrayList<>();
-			for(int i=0; i<Math.min(_pontos.size(), _pontosQ.size()); i++) {
-				indices.add(i);
-			}
-			Collections.shuffle(indices);
-			List<KnnPoint> pontos = new ArrayList<>();
-			for(int i=0;i<indices.size();i++)
-				pontos.add(_pontos.get(i));
-			List<KnnPoint> pontosQ = new ArrayList<>();
-			for(int i=0;i<indices.size();i++)
-				pontosQ.add(_pontosQ.get(i));
-			
+//			List<Integer> indices = new ArrayList<>();
+//			for(int i=0; i<Math.min(_pontos.size(), _pontosQ.size()); i++) {
+//				indices.add(i);
+//			}
+//			Collections.shuffle(indices);
+//			List<KnnPoint> pontos = new ArrayList<>();
+//			for(int i : indices)
+//				pontos.add(_pontos.get(i));
+//			List<KnnPoint> pontosQ = new ArrayList<>();
+//			for(int i : indices)
+//				pontosQ.add(_pontosQ.get(i));
 			
 			double[][]  shapeContextA = new double[Math.max(pontos.size(), pontosQ.size())][5*12], 
 						shapeContextB = new double[Math.max(pontos.size(), pontosQ.size())][5*12];
@@ -105,7 +100,7 @@ public class KnnTest {
 			Hungarian h = new Hungarian(cost);
 			int[] resultHungarian = h.execute();
 			
-//			BufferedImage result = new BufferedImage(Math.max(imgBase.getWidth(), imgQuery.getWidth()), imgBase.getHeight()+imgQuery.getHeight(), imgBase.getType());
+//			BufferedImage result = new BufferedImage(Math.max(base.getWidth(), query.getWidth()), base.getHeight()+query.getHeight(), base.getType());
 //			Graphics g = result.getGraphics();
 //			Graphics2D drawer = result.createGraphics() ;
 //			drawer.setBackground(Color.WHITE);
@@ -120,19 +115,20 @@ public class KnnTest {
 //			g.setColor(new Color(120,120,120));
 			
 			int j;
-			double match=0, unmatch=2.2204e-016;
+			double match=0, unmatch=2.2204e-016, weight=1.0;
 			for (int i = 0; i < resultHungarian.length; i++) {
 				j = resultHungarian[i];
-				if(cost[i][j] < 10e5 && pontos.get(i).distance(pontosQ.get(j)) < 60) {
-					match+=1;
+				if(cost[i][j] < 0.2 && pontos.get(i).distance(pontosQ.get(j)) < 65) {
+					match+= 1;
+					weight += Math.abs(0.2-cost[i][j]);
 //					g.drawLine(pontos.get(i).getX(), pontos.get(i).getY(), pontosQ.get(j).getX(), base.getHeight()+pontosQ.get(j).getY());
 				}else {
 					unmatch += 1; 
 				}
 			}
 			DecimalFormat df = new DecimalFormat("0.00");
-			double scoreFactor = (match*unmatch)/(match+unmatch);
-			System.out.println(b.replace("data/", "").substring(0,6)+"\t"+q.replace("data/", "").substring(0,6)+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format(scoreFactor*(match/(unmatch+match))*100));
+			double scoreFactor = Math.pow(match/100, 3) + weight*Math.pow(match/100, 2);
+			System.out.println(b.replace("data/", "").substring(0,6)+"\t"+q.replace("data/", "").substring(0,6)+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format(scoreFactor*match));
 			
 //			File ox = new File("knn_"+(b.replace("data/base/", "")+"_"+q.replace("data/", ""))+".png");
 //			ImageIO.write(result, "png", ox);
@@ -141,4 +137,5 @@ public class KnnTest {
 			e.printStackTrace();
 		}
 	}
+	
 }
