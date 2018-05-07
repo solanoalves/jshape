@@ -23,8 +23,6 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
-import org.junit.Test;
-
 import br.sln.jshape.Hungarian;
 import br.sln.jshape.KnnPoint;
 import br.sln.jshape.TransformImage;
@@ -34,7 +32,7 @@ import ij.process.ByteProcessor;
  * Unit tests for {@link Image}.
  */
 public class KnnTest {
-	@Test
+//	@Test	
 	public void comparaImages() {
 		String[] base = new String[]{"00.png", "01.png", "02.png", "03.png", "04.jpg", "05.png", "06.jpg", "07.jpg", "08.jpg", "09.jpg", "10.jpg", "11.jpg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg"};
 //		String[] base = new String[]{"02.png"};
