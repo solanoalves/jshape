@@ -25,6 +25,7 @@ import javax.imageio.ImageIO;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.junit.Test;
 
 import br.sln.jshape.KnnPoint;
 import br.sln.jshape.TransformImage;
@@ -33,6 +34,22 @@ import br.sln.jshape.TransformImage;
  * Unit tests for {@link Image}.
  */
 public class RegionRest {
+	
+	@Test
+	public void imagemcnh() {
+		BufferedImage base = converterPdf("/home/saguiar/Downloads/dennys-cnh.pdf");
+		TransformImage.minCount(base);
+		base = TransformImage.binarizeImage(base, 240);
+		base = TransformImage.cutMinMaxPixels(base);
+		File p = new File("/home/saguiar/saida.png");
+		try {
+			ImageIO.write(base, "png", p);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 //	@Test
 	public void comparaImages() {
 		BufferedImage base = converterPdf("pdf2.pdf");

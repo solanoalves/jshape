@@ -113,13 +113,12 @@ public class TransformImage {
 							if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight()) {
 								sum += (base.getRGB(c + i, r + j) == Color.BLACK.getRGB() ? 1 : 0);
 							}
-					if (sum > 50) {
+					if (sum < 15) {
 						for (int i = 0; i < window; i++)
 							for (int j = 0; j < window; j++)
 								if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight())
 									image.setRGB(c + i, r + j, Color.WHITE.getRGB());
 					}
-					g.drawRect(c, r, window, window);
 				}
 			}
 		}
