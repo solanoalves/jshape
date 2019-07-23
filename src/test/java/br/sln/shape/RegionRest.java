@@ -27,60 +27,29 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.Test;
 
-import br.sln.jshape.KnnPoint;
-import br.sln.jshape.TransformImage;
-
 /**
  * Unit tests for {@link Image}.
  */
 public class RegionRest {
 	
 	@Test
-	public void imagemcnh() {
-		BufferedImage base = converterPdf("/home/saguiar/Downloads/dennys-cnh.pdf");
-		TransformImage.minCount(base);
-		base = TransformImage.binarizeImage(base, 240);
-		base = TransformImage.cutMinMaxPixels(base);
-		File p = new File("/home/saguiar/saida.png");
-		try {
-			ImageIO.write(base, "png", p);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	
-//	@Test
-	public void comparaImages() {
-		BufferedImage base = converterPdf("pdf2.pdf");
-		BufferedImage bi = TransformImage.filterBottomImage(base);
-		bi = TransformImage.binarizeImage(bi, 200);
-		TransformImage.erode2(bi);
-		bi = TransformImage.filterBlob(bi);
-		List<KnnPoint> pontos = TransformImage.blobPoints(bi);
+	public void image() {
 		
-		int offsetY = 10;
-		int offsetX = 15;
-		int width = (int)((pontos.get(2).getX()-pontos.get(0).getX())*0.95);
-		int height = (int)(width*0.145);
-		int offsetBox = (int)(width*0.067) + height;
+		for(int i= 33 ; i< 34 ; i++) {
 		
-		BufferedImage proprietario = base.getSubimage(pontos.get(0).getX()+offsetX, pontos.get(0).getY()+offsetY, width, height);
-		BufferedImage condutor = base.getSubimage(pontos.get(0).getX()+offsetX, offsetBox+pontos.get(0).getY()+offsetY, width, height);
-		
-		File p = new File("proprietario.png");
-		File c = new File("condutor.png");
-		try {
-			ImageIO.write(proprietario, "png", p);
-			ImageIO.write(condutor, "png", c);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			BufferedImage base = converterPdf("/home/saguiar/imagep/pdf/form"+(i<10?"0":"")+(i)+".pdf", null);
+			
+			File p = new File("/home/saguiar/imagep/form"+(i<10?"0":"")+i+".png");
+			try {
+				ImageIO.write(base, "png", p);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	public BufferedImage converterPdf(String pdf) {
+	public BufferedImage converterPdf(String pdf, Integer pageN) {
 		BufferedImage result = null;
 		try {
 	        String sourceDir = pdf;
@@ -89,9 +58,13 @@ public class RegionRest {
 	        if (sourceFile.exists()) {
 	            PDDocument document = PDDocument.load(sourceDir);
 	            List<PDPage> list = document.getDocumentCatalog().getAllPages();
-	            for (PDPage page : list) {
-	            	result = page.convertToImage();
-	                break;
+	            if(pageN != null) {
+	            	result = list.get(pageN).convertToImage(BufferedImage.TYPE_USHORT_GRAY, 200);
+	            }else {
+		            for (PDPage page : list) {
+		            	result = page.convertToImage(BufferedImage.TYPE_USHORT_GRAY, 200);
+		                break;
+		            }
 	            }
 	            document.close();
 	        } else {

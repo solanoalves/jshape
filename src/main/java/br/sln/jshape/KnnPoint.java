@@ -40,4 +40,10 @@ public class KnnPoint {
 		}
 		return Double.MAX_VALUE;
 	}
+	public double distance(int x, int y) {
+		return Math.sqrt( Math.pow(this.x - x, 2) + Math.pow(this.y - y, 2) );
+	}
+	public String getId() {
+		return this.x+"-"+this.y;
+	}
 }

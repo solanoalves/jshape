@@ -19,9 +19,12 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.text.DecimalFormat;
+import java.util.Date;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import org.junit.Test;
 
 import br.sln.jshape.Hungarian;
 import br.sln.jshape.KnnPoint;
@@ -32,43 +35,66 @@ import ij.process.ByteProcessor;
  * Unit tests for {@link Image}.
  */
 public class KnnTest {
-//	@Test	
+	@Test	
 	public void comparaImages() {
-		String[] base = new String[]{"00.png", "01.png", "02.png", "03.png", "04.jpg", "05.png", "06.jpg", "07.jpg", "08.jpg", "09.jpg", "10.jpg", "11.jpg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg"};
+//		String[] base = new String[]{"00.png", "01.png", "02.png", "03.png", "04.jpg", "05.png", "06.jpg", "07.jpg", "08.jpg", "09.jpg", "10.jpg", "11.jpg", "12.jpg", "13.jpg", "14.jpg", "15.jpg", "16.jpg", "17.jpg", "18.jpg", "19.jpg", "20.jpg"};
 //		String[] base = new String[]{"02.png"};
-//		String[] query = new String[]{"20-1.png"};
+//		String[] query = new String[]{"02-1.png"};
 //		String[] query = new String[]{"c1.png", "c2.png", "c3.png", "d1.png"};
 
-		System.out.println("Base\tQuery\t+\t-\tScore");
-		String[] spl = null;
-		for(String b : base) {
-//			comparar(b,query[0]);
-			for(String q : base) {
-				for(int i=0; i<2; i++) {
-					spl = q.split("\\.");
-					comparar(b,spl[0]+"-"+i+".png");
-				}
-			}
-		}
+//		System.out.println("Base\tQuery\t+\t-\tScore");
+//		String[] spl = null;
+//		for(String b : base) {
+			comparar("Condutor_base.png", "Condutor_query.png");
+			comparar("Proprietario_base.png", "Proprietario_query.png");
+//			for(String q : base) {
+//				for(int i=0; i<2; i++) {
+//					spl = q.split("\\.");
+//					comparar(b,spl[0]+"-"+i+".png");
+//				}
+//			}
+//		}
 	}
 
 	public void comparar(String b, String q) {
 		try {
-			BufferedImage base = ImageIO.read(new File("data/base/"+b));
-			BufferedImage query = ImageIO.read(new File("data/"+q));
+			Date dini = new Date();
+			Date d = new Date();
+			BufferedImage base = ImageIO.read(new File("/home/saguiar/imagep/comparar/"+b));
+			BufferedImage query = ImageIO.read(new File("/home/saguiar/imagep/comparar/"+q));
 
-			base = TransformImage.binarizeImage(base);
-			query = TransformImage.binarizeImage(query);
+//			base = TransformImage.binarizeImage(base);
+//			query = TransformImage.binarizeImage(query);
 			
-			base = TransformImage.scale(base, Math.max(base.getWidth(), query.getWidth())*2, Math.max(base.getHeight(), query.getHeight())*2, base.getType());
-			query = TransformImage.scale(query, base.getWidth(), base.getHeight(), query.getType());
+//			System.out.println("Binarizou "+((new Date().getTime())-d.getTime()));
+//			d = new Date();
+			
+//			base = TransformImage.scale(base, Math.min(Math.max(base.getWidth(), query.getWidth())*2, 1000), Math.min(Math.max(base.getHeight(), query.getHeight())*2, 180), base.getType());
+//			query = TransformImage.scale(query, base.getWidth(), base.getHeight(), query.getType());
 
+//			System.out.println("Escalou "+((new Date().getTime())-d.getTime()));
+//			d = new Date();
+			
 			new ByteProcessor(base).skeletonize();
 			new ByteProcessor(query).skeletonize();
 			
-			List<KnnPoint> pontos = TransformImage.knn(base, 2);
-			List<KnnPoint> pontosQ = TransformImage.knn(query, 2);
+			System.out.println("Skeletonizou "+((new Date().getTime())-d.getTime()));
+			d = new Date();
 			
+			int knnBase = 2, knnQuery = 2;
+			List<KnnPoint> pontos = TransformImage.knn(base, knnBase);
+			List<KnnPoint> pontosQ = TransformImage.knn(query, knnQuery);
+			
+			while(pontos.size() > 1600) {
+				pontos = TransformImage.knn(base, knnBase++);
+			}
+			
+			while(pontosQ.size() > 1600) {
+				pontosQ = TransformImage.knn(query, knnQuery++);
+			}
+			
+			System.out.println("KNN "+((new Date().getTime())-d.getTime()));
+			d = new Date();
 //			BufferedImage imgBase = base;
 //			BufferedImage imgQuery = query;
 			
@@ -89,14 +115,29 @@ public class KnnTest {
 //			for(int i : indices)
 //				pontosQ.add(_pontosQ.get(i));
 			
+//			System.out.println("deu "+Math.max(pontos.size(), pontosQ.size())+" pontos");
+			
 			double[][]  shapeContextA = new double[Math.max(pontos.size(), pontosQ.size())][5*12], 
 						shapeContextB = new double[Math.max(pontos.size(), pontosQ.size())][5*12];
+			
 			TransformImage.shapeDescriptor(pontos, shapeContextA, pontosQ, shapeContextB);
-
+			
+			System.out.println("ShapeDesc "+((new Date().getTime())-d.getTime()));
+			d = new Date();
+			
+			
 			double[][] cost = TransformImage.histCount(pontos, shapeContextA, pontosQ, shapeContextB);
+			
+			System.out.println("HistoCount "+((new Date().getTime())-d.getTime()));
+			d = new Date();
+			
+			System.out.println(cost.length+" "+cost[0].length);
 			
 			Hungarian h = new Hungarian(cost);
 			int[] resultHungarian = h.execute();
+			
+			System.out.println("Hungarian "+((new Date().getTime())-d.getTime()));
+			d = new Date();
 			
 //			BufferedImage result = new BufferedImage(Math.max(base.getWidth(), query.getWidth()), base.getHeight()+query.getHeight(), base.getType());
 //			Graphics g = result.getGraphics();
@@ -126,11 +167,16 @@ public class KnnTest {
 			}
 			DecimalFormat df = new DecimalFormat("0.00");
 			double scoreFactor = Math.pow(match/100, 3) + weight*Math.pow(match/100, 2);
-			System.out.println(b.replace("data/", "").substring(0,6)+"\t"+q.replace("data/", "").substring(0,6)+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format(scoreFactor*match));
 			
+			System.out.println("Score "+((new Date().getTime())-d.getTime()));
+			
+			
+//			System.out.println(b.replace("data/", "").substring(0,6)+"\t"+q.replace("data/", "").substring(0,6)+"\t"+df.format(match)+"\t"+df.format(unmatch)+"\t"+df.format(scoreFactor*match));
+			
+//			System.out.println(((new Date().getTime())-d.getTime()));
 //			File ox = new File("knn_"+(b.replace("data/base/", "")+"_"+q.replace("data/", ""))+".png");
 //			ImageIO.write(result, "png", ox);
-			
+			System.out.println("TOTAL "+((new Date().getTime())-dini.getTime()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

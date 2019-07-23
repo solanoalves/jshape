@@ -81,7 +81,6 @@ public class TransformImage {
 									}
 								}
 						if (sum > 20 && tl && tr && bl && br) {
-							System.out.println(sum);
 							for (int i = -kernel*k; i <= kernel*k; i++)
 								for (int j = -kernel*k; j <= kernel*k; j++)
 									if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight())
@@ -97,31 +96,38 @@ public class TransformImage {
 		}
 		return blobs;
 	}
-
-	public static void minCount(BufferedImage image) {
+	
+	public static BufferedImage minCount(BufferedImage image) {
+		BufferedImage base = null;
 		if (image != null) {
-			int window = 100;
+			int window = 10;
 			int sum;
-			BufferedImage base = deepCopy(image);
-			Graphics g = image.getGraphics();
+			base = deepCopy(image);
+			Graphics g = base.getGraphics();
 			g.setColor(new Color(0, 0, 0));
-			for (int r = 0; r < image.getHeight(); r += window) {
-				for (int c = 0; c < image.getWidth(); c += window) {
-					sum = 0;
-					for (int i = 0; i < window; i++)
-						for (int j = 0; j < window; j++)
-							if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight()) {
-								sum += (base.getRGB(c + i, r + j) == Color.BLACK.getRGB() ? 1 : 0);
+			for (int r = 0; r < image.getHeight(); r++) {
+				for (int c = 0; c < image.getWidth(); c++) {
+					if(image.getRGB(c, r) == Color.BLACK.getRGB()) {
+						sum = 0;
+						janela: for (int i = -window; i < window; i++) {
+							for (int j = -window; j < window; j++) {
+								if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight()) {
+									sum += (image.getRGB(c + i, r + j) == Color.BLACK.getRGB() ? 1 : 0);
+								}
+								if(sum > 50) break janela;
 							}
-					if (sum < 15) {
-						for (int i = 0; i < window; i++)
-							for (int j = 0; j < window; j++)
-								if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight())
-									image.setRGB(c + i, r + j, Color.WHITE.getRGB());
+						}
+						if (sum < 50) {
+							for (int i = -window*3; i < window*3; i++)
+								for (int j = -window*3; j < window*3; j++)
+									if (c + i > 0 && r + j > 0 && c + i < image.getWidth() && r + j < image.getHeight())
+										base.setRGB(c + i, r + j, Color.WHITE.getRGB());
+						}
 					}
 				}
 			}
 		}
+		return base;
 	}
 
 	public static BufferedImage deepCopy(BufferedImage bi) {
@@ -130,7 +136,30 @@ public class TransformImage {
 		WritableRaster raster = bi.copyData(null);
 		return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
 	}
-
+	
+	public static BufferedImage binarizeImageAround(BufferedImage img, double threshold) {
+		BufferedImage ret = null;
+		if (img != null) {
+			int gray, r, g, b, rgb;
+			ret = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+			for (int row = 0; row < img.getHeight(); row++) {
+				for (int col = 0; col < img.getWidth(); col++) {
+					rgb = img.getRGB(col, row);
+					r = (rgb >> 16) & 0xFF;
+					g = (rgb >> 8) & 0xFF;
+					b = (rgb & 0xFF);
+					gray = (r + g + b) / 3;
+					if (gray < threshold) {
+						ret.setRGB(col, row, Color.BLACK.getRGB());
+					} else {
+						ret.setRGB(col, row, Color.WHITE.getRGB());
+					}
+				}
+			}
+		}
+		return ret;
+	}
+	
 	public static BufferedImage binarizeImage(BufferedImage img, int threshold) {
 		BufferedImage ret = null;
 		if (img != null) {
@@ -204,7 +233,7 @@ public class TransformImage {
 		}
 	}
 	
-	public static void dilate2(BufferedImage image) {
+	public static void dilate3(BufferedImage image) {
 		if (image != null) {
 			for (int r = 0; r < image.getHeight(); r++) {
 				for (int c = 0; c < image.getWidth(); c++) {
@@ -324,11 +353,16 @@ public class TransformImage {
 		if (image != null) {
 			int gray = 0;
 			PriorityQueue<KnnPoint> queue = new PriorityQueue<KnnPoint>(10, new KnnPointComparator());
+			KnnPoint lastPointAdded = null;
 			for (int r = 0; r < image.getHeight(); r++) {
 				for (int c = 0; c < image.getWidth(); c++) {
+					if(lastPointAdded != null && lastPointAdded.distance(c, r) < k)
+						continue;
+
 					gray = image.getRGB(c, r) & 0xFF;
 					if (gray == 0) {
-						queue.add(new KnnPoint(c, r));
+						lastPointAdded = new KnnPoint(c, r);
+						queue.add(lastPointAdded);
 					}
 				}
 			}
@@ -597,6 +631,39 @@ public class TransformImage {
 			}
 		}
 		return fim ? null : ret;
+	}
+	
+	public static BufferedImage[] splitMiddle(BufferedImage base) {
+		if (base != null) {
+			return new BufferedImage[] {
+					base.getSubimage(0, 0, base.getWidth(), base.getHeight()/2),
+					base.getSubimage(0, base.getHeight()/2, base.getWidth(), base.getHeight()/2)
+			};
+		}
+		return null;
+	}
+	
+	public static BufferedImage cropRegionImage(BufferedImage base, BufferedImage filtered) {
+		if (base != null) {
+			int minCol = base.getWidth(), minRow = base.getHeight(), maxCol = 0, maxRow = 0, gray;
+			for (int row = 0; row < base.getHeight(); row++) {
+				for (int col = 0; col < base.getWidth(); col++) {
+					gray = filtered.getRGB(col, row) & 0XFF;
+					if (gray == 0) {
+						if (col < minCol)
+							minCol = col;
+						if (col > maxCol)
+							maxCol = col;
+						if (row < minRow)
+							minRow = row;
+						if (row > maxRow)
+							maxRow = row;
+					}
+				}
+			}
+			return base.getSubimage(minCol, minRow, maxCol-minCol, maxRow-minRow);
+		}
+		return null;
 	}
 
 	public static BufferedImage cutMinMaxPixels(BufferedImage image) {
